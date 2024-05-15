@@ -15,6 +15,8 @@ nodetypes.set("end", "red");
 nodetypes.set("wall", "black");
 nodetypes.set("path", "white");
 let currStat = "wall";
+let start = 0;
+let end = 0;
 
 function clickHandler(e) {
     mousex = e.clientX - canvas.offsetLeft;
@@ -47,7 +49,7 @@ class node {
         this.prev = undefined;
         this.next = undefined;
         this.color = "white";
-        this.type = "normal";
+        this.type = "path";
     }
     changeColor(color, type) {
         this.color = color;
@@ -91,16 +93,54 @@ function paintNode(nodes){
     }
     if(x < cols && x>=0 && y>=0 && y < rows){
         //console.log(currStat);
-        nodes[x][y].changeColor(nodetypes.get(currStat), currStat);
+        nodes[x][y].changeColor(nodetypes.get(currStat), currStat);               
     }    
+}
+
+function findPath(nodes) {
+    // Encuentra el nodo de inicio y el nodo de destino
+    let startNode, endNode;
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = 0; j < nodes[i].length; j++) {
+            if (nodes[i][j].type === "start") {
+                startNode = nodes[i][j];
+            } else if (nodes[i][j].type === "end") {
+                endNode = nodes[i][j];
+            }
+        }
+    }
+    // Llama a la función A* para encontrar el camino
+    let path = aStar(startNode, endNode, nodes);
+    // Devuelve el camino encontrado
+    return path;
+}
+
+function manhattan(nodeA, nodeB) {
+    var dx = Math.abs(nodeB.x - nodeA.x)/10;
+    var dy = Math.abs(nodeB.y - nodeA.y)/10;
+    return dx + dy;
+}
+
+function heuristic(nodeA, nodeB) {
+    var dx = nodeB.x/nodeB.width - nodeA.x/nodeA.width;
+    var dy = nodeB.y/nodeB.height - nodeA.y/nodeA.height;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Función A*
+function aStar(startNode, endNode){
+    return manhattan(startNode, endNode);
 }
 
 function render(arr){
     drawNodes(arr);
+    let path = findPath(arr);
+    console.log(path)
 }
 
 function main() {
     let arr = generateNodes();
+    
     setInterval(render, 100, arr);
 }
 

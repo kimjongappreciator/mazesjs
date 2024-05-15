@@ -15,8 +15,8 @@ nodetypes.set("end", "red");
 nodetypes.set("wall", "black");
 nodetypes.set("path", "white");
 let currStat = "wall";
-let start = 0;
-let end = 0;
+let search = false;
+
 
 function clickHandler(e) {
     mousex = e.clientX - canvas.offsetLeft;
@@ -36,6 +36,12 @@ function keyDownHandler(e) {
     }
     if(e.keyCode == 52) {
         currStat = "path";    
+    }
+    if(e.keyCode == 53) {
+        search = true;        
+    }
+    if(e.keyCode == 54) {
+        search = false;
     }
 }
 
@@ -134,8 +140,11 @@ function aStar(startNode, endNode){
 
 function render(arr){
     drawNodes(arr);
-    let path = findPath(arr);
-    console.log(path)
+    if(search){
+        let path = findPath(arr);
+        console.log(path)
+    }
+    
 }
 
 function main() {

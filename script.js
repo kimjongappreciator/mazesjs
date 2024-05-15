@@ -56,6 +56,9 @@ class node {
         this.next = undefined;
         this.color = "white";
         this.type = "path";
+        this.g = Infinity; // Costo real desde el nodo inicial
+        this.h = Infinity; // Costo heurístico al nodo de destino
+        this.f = Infinity;
     }
     changeColor(color, type) {
         this.color = color;
@@ -104,7 +107,6 @@ function paintNode(nodes){
 }
 
 function findPath(nodes) {
-    // Encuentra el nodo de inicio y el nodo de destino
     let startNode, endNode;
     for (let i = 0; i < nodes.length; i++) {
         for (let j = 0; j < nodes[i].length; j++) {
@@ -115,7 +117,6 @@ function findPath(nodes) {
             }
         }
     }
-    // Llama a la función A* para encontrar el camino
     let path = aStar(startNode, endNode, nodes);
     // Devuelve el camino encontrado
     return path;
@@ -127,15 +128,74 @@ function manhattan(nodeA, nodeB) {
     return dx + dy;
 }
 
-function heuristic(nodeA, nodeB) {
-    var dx = nodeB.x/nodeB.width - nodeA.x/nodeA.width;
-    var dy = nodeB.y/nodeB.height - nodeA.y/nodeA.height;
-    return Math.sqrt(dx * dx + dy * dy);
-}
 
 // Función A*
-function aStar(startNode, endNode){
-    return manhattan(startNode, endNode);
+function aStar(startNode, endNode, nodes){
+    var openSet = [];
+    openSet.push(startNode);
+
+    while (openSet.length > 0) {
+        // Encuentra el nodo en el conjunto abierto con el costo más bajo
+        var currentNode = openSet[0];
+        for (var i = 1; i < openSet.length; i++) {
+            if (openSet[i].f < currentNode.f) {
+                currentNode = openSet[i];
+            }
+        }
+
+        // Si el nodo actual es el nodo de destino, hemos terminado
+        if (currentNode === endNode) {
+            var path = [];
+            var temp = currentNode;
+            while (temp) {
+                path.push(temp);
+                temp = temp.prev;
+            }
+            return path.reverse();
+        }
+
+        // Elimina el nodo actual del conjunto abierto y agrégalo al conjunto cerrado
+        openSet = openSet.filter(function(node) {
+            return node !== currentNode;
+        });
+
+        // Marca el nodo actual como visitado
+        currentNode.isVisited = true;
+
+        // Explora los nodos vecinos del nodo actual
+        var neighbors = [];
+        var x = currentNode.x/10;
+        var y = currentNode.y/10;
+        if (x < nodes.length - 1) {
+            neighbors.push(nodes[x + 1][y]);
+        }
+        if (x > 0) {            
+            neighbors.push(nodes[x - 1][y]);
+        }
+        if (y < nodes[0].length - 1) {
+            neighbors.push(nodes[x][y + 1]);
+        }
+        if (y > 0) {
+            neighbors.push(nodes[x][y - 1]);
+        }
+
+        neighbors.forEach(function(neighbor) {
+            if (!neighbor.isVisited && neighbor.type !== "wall") {
+                var tempG = currentNode.g + 1; // Costo real desde el nodo inicial hasta este vecino
+                if (tempG < neighbor.g) {
+                    neighbor.prev = currentNode;
+                    neighbor.g = tempG;
+                    neighbor.h = manhattan(neighbor, endNode);
+                    neighbor.f = neighbor.g + neighbor.h;
+                    if (!openSet.includes(neighbor)) {
+                        openSet.push(neighbor);
+                    }
+                }
+            }
+        });
+    }
+    // Si no se encuentra un camino, devuelve un arreglo vacío
+    return [];
 }
 
 function render(arr){

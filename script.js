@@ -54,7 +54,7 @@ class node {
         this.height = canvas.height/(rows);
         this.isVisited = false;
         this.prev = undefined;
-        this.next = undefined;
+        //this.next = undefined;
         this.color = "white";
         this.type = "clear";
         this.g = Infinity; // Costo real desde el nodo inicial
@@ -214,9 +214,12 @@ function render(arr){
         for (let i = 0; i < arr.length; i++) {
             for(let j = 0; j < arr[i].length; j++){
                 arr[i][j].changeColor(nodetypes.get("clear"), "clear");
+                arr[i][j].isVisited = false;
             }
         }
+        firstRender = true;
         clear = false;
+        search = false;
     }
 
     drawNodes(arr);    
@@ -224,6 +227,10 @@ function render(arr){
         let { startNode, endNode } = findStartEnd(arr);
         console.log(startNode, endNode)
         let path = findPath(startNode, endNode, arr);
+
+        if(path.length == 0){
+            search = false;
+        }
         //console.log(path);
         drawPath(path,arr);
         search = false; // Detiene la búsqueda después de encontrar el camino

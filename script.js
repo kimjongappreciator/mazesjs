@@ -13,10 +13,11 @@ const nodetypes = new Map();
 nodetypes.set("start", "green");
 nodetypes.set("end", "red");
 nodetypes.set("wall", "black");
-nodetypes.set("path", "white");
+nodetypes.set("path", "blue");
+nodetypes.set("clear", "white");
 let currStat = "wall";
 let search = false;
-
+let clear = false;
 
 function clickHandler(e) {
     mousex = e.clientX - canvas.offsetLeft;
@@ -35,13 +36,13 @@ function keyDownHandler(e) {
         currStat = "wall";
     }
     if(e.keyCode == 52) {
-        currStat = "path";    
+        currStat = "clear";    
     }
     if(e.keyCode == 53) {
         search = true;        
     }
     if(e.keyCode == 54) {
-        search = false;
+        clear = true;
     }
 }
 
@@ -55,9 +56,9 @@ class node {
         this.prev = undefined;
         this.next = undefined;
         this.color = "white";
-        this.type = "path";
+        this.type = "clear";
         this.g = Infinity; // Costo real desde el nodo inicial
-        this.h = Infinity; // Costo heurístico al nodo de destino
+        this.h = 0; // Costo heurístico al nodo de destino
         this.f = Infinity;
     }
     changeColor(color, type) {
@@ -93,57 +94,62 @@ function drawNodes(nodes) {
 }
 
 function paintNode(nodes){    
-    let x = Math.floor(mousex/10);
-    let y = Math.floor(mousey/10);
-    //console.log(x, ' ', y)
+    let x = Math.floor(mousex / (canvas.width / cols));
+    let y = Math.floor(mousey / (canvas.height / rows));
     if(firstRender && x == 0 && y == 0){
-        //firstRender = false;
         return;
     }
-    if(x < cols && x>=0 && y>=0 && y < rows){
-        //console.log(currStat);
+    if(x < cols && x >= 0 && y >= 0 && y < rows){
         nodes[x][y].changeColor(nodetypes.get(currStat), currStat);               
     }    
 }
 
-function findPath(nodes) {
+function findStartEnd(nodes) {
     let startNode, endNode;
     for (let i = 0; i < nodes.length; i++) {
         for (let j = 0; j < nodes[i].length; j++) {
             if (nodes[i][j].type === "start") {
+                if (startNode) {
+                    startNode.type = "path"; // Solo puede haber un nodo de inicio
+                }
                 startNode = nodes[i][j];
             } else if (nodes[i][j].type === "end") {
+                if (endNode) {
+                    endNode.type = "path"; // Solo puede haber un nodo de fin
+                }
                 endNode = nodes[i][j];
             }
         }
     }
-    let path = aStar(startNode, endNode, nodes);
-    // Devuelve el camino encontrado
-    return path;
+    return { startNode, endNode };
 }
 
-function manhattan(nodeA, nodeB) {
-    var dx = Math.abs(nodeB.x - nodeA.x)/10;
-    var dy = Math.abs(nodeB.y - nodeA.y)/10;
-    return dx + dy;
+function drawPath(path, nodes) {
+    console.log('path: ',path);    
+    for (let i = 1; i < path.length; i++) {
+        let x = path[i].x/10;
+        let y = path[i].y/10;
+        nodes[x][y].changeColor(nodetypes.get("path"), "path");
+    }
 }
 
 
-// Función A*
-function aStar(startNode, endNode, nodes){
+function findPath(startNode, endNode, nodes) {
     var openSet = [];
-    openSet.push(startNode);
+
+    startNode.g = 0;
+
+    openSet.push(startNode);  
 
     while (openSet.length > 0) {
-        // Encuentra el nodo en el conjunto abierto con el costo más bajo
+        
         var currentNode = openSet[0];
         for (var i = 1; i < openSet.length; i++) {
             if (openSet[i].f < currentNode.f) {
                 currentNode = openSet[i];
             }
         }
-
-        // Si el nodo actual es el nodo de destino, hemos terminado
+        
         if (currentNode === endNode) {
             var path = [];
             var temp = currentNode;
@@ -151,28 +157,27 @@ function aStar(startNode, endNode, nodes){
                 path.push(temp);
                 temp = temp.prev;
             }
+            //drawPath(path.reverse());
             return path.reverse();
         }
 
-        // Elimina el nodo actual del conjunto abierto y agrégalo al conjunto cerrado
         openSet = openSet.filter(function(node) {
             return node !== currentNode;
         });
 
-        // Marca el nodo actual como visitado
         currentNode.isVisited = true;
 
-        // Explora los nodos vecinos del nodo actual
+        var x = Math.floor(currentNode.x / (canvas.width / cols));
+        var y = Math.floor(currentNode.y / (canvas.height / rows));
+
         var neighbors = [];
-        var x = currentNode.x/10;
-        var y = currentNode.y/10;
-        if (x < nodes.length - 1) {
+        if (x < cols - 1) {
             neighbors.push(nodes[x + 1][y]);
         }
         if (x > 0) {            
             neighbors.push(nodes[x - 1][y]);
         }
-        if (y < nodes[0].length - 1) {
+        if (y < rows - 1) {
             neighbors.push(nodes[x][y + 1]);
         }
         if (y > 0) {
@@ -194,16 +199,36 @@ function aStar(startNode, endNode, nodes){
             }
         });
     }
-    // Si no se encuentra un camino, devuelve un arreglo vacío
     return [];
 }
 
+function manhattan(nodeA, nodeB) {
+    var dx = Math.abs(nodeB.x - nodeA.x)/10;
+    var dy = Math.abs(nodeB.y - nodeA.y)/10;
+    return dx + dy;
+}
+
+
 function render(arr){
-    drawNodes(arr);
-    if(search){
-        let path = findPath(arr);
-        console.log(path)
+    if(clear){
+        for (let i = 0; i < arr.length; i++) {
+            for(let j = 0; j < arr[i].length; j++){
+                arr[i][j].changeColor(nodetypes.get("clear"), "clear");
+            }
+        }
+        clear = false;
     }
+
+    drawNodes(arr);    
+    if(search){
+        let { startNode, endNode } = findStartEnd(arr);
+        console.log(startNode, endNode)
+        let path = findPath(startNode, endNode, arr);
+        //console.log(path);
+        drawPath(path,arr);
+        search = false; // Detiene la búsqueda después de encontrar el camino
+    }
+    
     
 }
 

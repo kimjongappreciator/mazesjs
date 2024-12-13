@@ -1,2 +1,2 @@
 # mazesjs
-theres troubles with the ui cause im too lazy to reimplement it but when it works it's fine.
+there are some issues with the ui cause im too lazy to remake it.
